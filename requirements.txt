@@ -2,7 +2,5 @@ anthropic
 fastapi
 uvicorn
 Pillow
-requests
-serpapi
+google-search-results
 python-dotenv
-htmx 

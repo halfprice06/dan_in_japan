@@ -7,6 +7,8 @@ from anthropic import Anthropic
 import base64
 from serpapi import GoogleSearch
 import dotenv
+import setup_database
+from io import BytesIO
 
 dotenv.load_dotenv()
 
@@ -35,9 +37,9 @@ def get_lat_lon(gps_info):
         return None, None
 
     def convert_to_degrees(value):
-        d = value[0][0] / value[0][1]
-        m = value[1][0] / value[1][1]
-        s = value[2][0] / value[2][1]
+        d = value[0].numerator / value[0].denominator
+        m = value[1].numerator / value[1].denominator
+        s = value[2].numerator / value[2].denominator
         return d + (m / 60.0) + (s / 3600.0)
 
     lat = convert_to_degrees(gps_info['GPSLatitude'])
@@ -57,7 +59,10 @@ def generate_caption(image_path, photographer, map_image_path=None):
 
     system_prompt = f"""
     You are reviewing vacation photos to create captions for a website about the vacation recently taken by Chuck, Ashley, Daniel, and Christina. Chuck and Ashley are married, Daniel and Christina are married.  
-    The photos were taken by {photographer}.
+    This photo was taken by {photographer}. Write the caption from a third person perspective referencing the photographer by name. Add some charm and personality to the caption to make it interesting from the reader's perspective and help contexualize what they are looking at. You can provide some context about the location, history, people, anything that's relevant to the photo. Don't hallucinate. Don't make up things that are not in the photo or details about the photographer's life. Don't make assumptions about anything you see in the photos. 
+
+    Keep your answer to about one or two sentences. 
+
     """
 
     messages_content = []
@@ -65,14 +70,15 @@ def generate_caption(image_path, photographer, map_image_path=None):
     # Include the map image if available
     if map_image_path is not None:
         try:
-            with open(map_image_path, 'rb') as f:
-                map_image_data = f.read()
-            map_image_base64 = base64.b64encode(map_image_data).decode('utf-8')
+            with Image.open(map_image_path) as img:
+                buffer = BytesIO()
+                img.convert('RGB').save(buffer, format='JPEG')
+                map_image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
             messages_content.append({
                 'type': 'image',
                 'source': {
                     'type': 'base64',
-                    'media_type': 'image/png',
+                    'media_type': 'image/jpeg',
                     'data': map_image_base64
                 }
             })
@@ -82,9 +88,10 @@ def generate_caption(image_path, photographer, map_image_path=None):
 
     # Process the input image
     try:
-        with open(image_path, 'rb') as f:
-            image_data = f.read()
-        image_base64 = base64.b64encode(image_data).decode('utf-8')
+        with Image.open(image_path) as img:
+            buffer = BytesIO()
+            img.convert('RGB').save(buffer, format='JPEG')
+            image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
         messages_content.append({
             'type': 'image',
             'source': {
@@ -115,7 +122,7 @@ def generate_caption(image_path, photographer, map_image_path=None):
     )
 
     # Extract the caption from the response
-    caption = response['content'][0]['text'].strip()
+    caption = ' '.join(block.text for block in response.content if block.type == 'text').strip()
     return caption
 
 def get_location_name(lat, lon):
@@ -137,7 +144,7 @@ def generate_map_image(lat, lon, filename):
         return None
 
     params = {
-        "api_key": "YOUR_SERPAPI_KEY",  # Replace with your actual SerpApi key
+        "api_key": os.environ['SERP_API_KEY'],  # Retrieved from environment variables
         "engine": "google",
         "q": f"{lat}, {lon}",
         "location": "Austin, Texas, United States",
@@ -156,7 +163,7 @@ def generate_map_image(lat, lon, filename):
     image_url = local_map["image"]
     response = requests.get(image_url)
     if response.status_code == 200:
-        map_filename = f'map_{filename}.webp'
+        map_filename = f'map_{filename}.jpg'
         map_filepath = os.path.join('maps', map_filename)
         # Ensure the 'maps' directory exists
         os.makedirs(os.path.dirname(map_filepath), exist_ok=True)
@@ -167,6 +174,9 @@ def generate_map_image(lat, lon, filename):
         return None
 
 def process_images():
+    if not os.path.exists('photos.db'):
+        setup_database.setup_database()
+
     conn = sqlite3.connect('photos.db')
     cursor = conn.cursor()
 

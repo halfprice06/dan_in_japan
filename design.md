@@ -16,6 +16,7 @@ This document outlines the design and implementation plan for a personal website
 - **Python**
 - **FastAPI**: Framework for building the web application.
 - **SQLite**: Database for storing photo metadata and captions.
+- **Anthropic Claude API**: Used to generate AI-based captions for photos.
 
 ### Frontend
 - **HTMX**: For enhancing interactivity without extensive JavaScript.
@@ -24,8 +25,8 @@ This document outlines the design and implementation plan for a personal website
 
 ### Image Processing
 - **Pillow (PIL)**: For extracting EXIF data from images.
-- **Visual Language Model**: For generating captions (e.g., Hugging Face transformers).
-- **Requests**: For making HTTP requests (e.g., reverse geocoding).
+- **Anthropic Claude API**: For generating captions.
+- **Requests**: For making HTTP requests.
 
 ### Interactive Map
 - **Leaflet.js**: JavaScript library for interactive maps.
