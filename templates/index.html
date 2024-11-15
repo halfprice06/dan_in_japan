@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Vacation Photos</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto py-8">
+        <h1 class="text-4xl font-bold text-center mb-8">My Vacation Photos</h1>
+
+        <!-- Search Form -->
+        <form action="/" method="get" class="mb-8">
+            <div class="flex items-center justify-center">
+                <input type="text" name="location" placeholder="Search by location" class="border border-gray-300 rounded-l px-4 py-2">
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r">Search</button>
+            </div>
+        </form>
+
+        <!-- Map Container -->
+        <div id="map" class="w-full h-96 mb-8"></div>
+
+        <!-- Photo Gallery -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for photo in photos %}
+            <div class="bg-white rounded shadow-md overflow-hidden">
+                <img class="w-full h-48 object-cover" src="{{ url_for('static', path=photo.file_path) }}" alt="Photo">
+                <div class="p-4">
+                    <p class="text-gray-800">{{ photo.caption }}</p>
+                    {% if photo.date_taken %}
+                    <p class="text-sm text-gray-500">Date: {{ photo.date_taken }}</p>
+                    {% endif %}
+                    {% if photo.latitude and photo.longitude %}
+                    <p class="text-sm text-gray-500">Location: {{ photo.latitude }}, {{ photo.longitude }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+    <!-- Initialize the Map -->
+    <script>
+        // Create the map and set the initial view
+        var map = L.map('map').setView([0, 0], 2);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Create an array to hold all marker positions
+        var markers = [];
+
+        // Loop through the photos and add markers
+        {% for photo in photos %}
+            {% if photo.latitude and photo.longitude %}
+                var marker = L.marker([{{ photo.latitude }}, {{ photo.longitude }}]).addTo(map);
+                marker.bindPopup(`
+                    <img src="{{ url_for('static', path=photo.file_path) }}" class="w-40 h-auto"><br>
+                    <strong>{{ photo.caption }}</strong>
+                `);
+                markers.push([{{ photo.latitude }}, {{ photo.longitude }}]);
+            {% endif %}
+        {% endfor %}
+
+        // Adjust the map view to fit all markers
+        if (markers.length > 0) {
+            var bounds = L.latLngBounds(markers);
+            map.fitBounds(bounds);
+        }
+
+        // Initialize the marker cluster group
+        var markerCluster = L.markerClusterGroup();
+
+        // Loop through the photos and add markers to the cluster group
+        {% for photo in photos %}
+            {% if photo.latitude and photo.longitude %}
+                var marker = L.marker([{{ photo.latitude }}, {{ photo.longitude }}]);
+                marker.bindPopup(`
+                    <img src="{{ url_for('static', path=photo.file_path) }}" class="w-40 h-auto"><br>
+                    <strong>{{ photo.caption }}</strong>
+                `);
+                markerCluster.addLayer(marker);
+            {% endif %}
+        {% endfor %}
+
+        // Add the marker cluster group to the map
+        map.addLayer(markerCluster);
+    </script>
+</body>
+</html> 

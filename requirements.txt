@@ -1,0 +1,8 @@
+anthropic
+fastapi
+uvicorn
+Pillow
+requests
+serpapi
+python-dotenv
+htmx 
