@@ -13,8 +13,8 @@ A personal website that hosts vacation photos with AI-generated captions and an 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your_username/vacation-photos-website.git
-   cd vacation-photos-website
+   git clone https://github.com/halfprice06/dan_in_japan.git
+   cd dan_in_japan
    ```
 
 2. **Create a virtual environment:**
@@ -36,12 +36,7 @@ A personal website that hosts vacation photos with AI-generated captions and an 
    SERPAPI_KEY=your_serpapi_key
    ```
 
-5. **Set up the database:**
-   ```bash
-   python setup_database.py
-   ```
-
-6. **Process images:**
+5. **Process images:**
 
    - Place your images in the `photos` directory, organized in subdirectories by photographer (e.g., `photos/Chuck`, `photos/Ashley`).
    - Run the image processing script:
@@ -49,7 +44,7 @@ A personal website that hosts vacation photos with AI-generated captions and an 
      python process_images.py
      ```
 
-7. **Run the application:**
+6. **Run the application:**
    ```bash
    uvicorn app:app --reload
    ```
@@ -61,7 +56,6 @@ A personal website that hosts vacation photos with AI-generated captions and an 
 - Python 3.x
 - FastAPI
 - Pillow (PIL)
-- Requests
 - Anthropics SDK
 - SerpAPI SDK
 - Leaflet.js
