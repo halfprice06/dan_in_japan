@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Vacation Photos</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- Leaflet CSS -->
@@ -28,7 +29,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             {% for photo in photos %}
             <div class="bg-white rounded shadow-md overflow-hidden">
-                <img class="w-full h-48 object-cover" src="{{ url_for('static', path=photo.file_path) }}" alt="Photo">
+                <img class="w-full h-48 object-cover" src="/static/photos/{{ photo.file_path }}" alt="Photo">
                 <div class="p-4">
                     <p class="text-gray-800">{{ photo.caption }}</p>
                     {% if photo.date_taken %}
@@ -64,7 +65,7 @@
             {% if photo.latitude and photo.longitude %}
                 var marker = L.marker([{{ photo.latitude }}, {{ photo.longitude }}]).addTo(map);
                 marker.bindPopup(`
-                    <img src="{{ url_for('static', path=photo.file_path) }}" class="w-40 h-auto"><br>
+                    <img src="/static/photos/{{ photo.file_path }}" class="w-40 h-auto"><br>
                     <strong>{{ photo.caption }}</strong>
                 `);
                 markers.push([{{ photo.latitude }}, {{ photo.longitude }}]);
@@ -85,7 +86,7 @@
             {% if photo.latitude and photo.longitude %}
                 var marker = L.marker([{{ photo.latitude }}, {{ photo.longitude }}]);
                 marker.bindPopup(`
-                    <img src="{{ url_for('static', path=photo.file_path) }}" class="w-40 h-auto"><br>
+                    <img src="/static/photos/{{ photo.file_path }}" class="w-40 h-auto"><br>
                     <strong>{{ photo.caption }}</strong>
                 `);
                 markerCluster.addLayer(marker);
