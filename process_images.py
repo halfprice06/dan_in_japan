@@ -10,6 +10,7 @@ import dotenv
 import setup_database
 from io import BytesIO
 import sys
+import shutil
 
 dotenv.load_dotenv()
 
@@ -154,14 +155,32 @@ def get_location_name(lat, lon):
         params = {
             'lat': lat,
             'lon': lon,
-            'format': 'jsonv2'
+            'format': 'jsonv2',
+            'accept-language': 'en'  # Request English names
         }
-        response = requests.get(url, params=params)
+        headers = {
+            'Accept-Language': 'en'  # Additional header to ensure English response
+        }
+        response = requests.get(url, params=params, headers=headers)
         if response.status_code == 200:
             data = response.json()
-            location = data.get('display_name')
-            print(f"Location found: {location}")
-            return location
+            # Try to get the most relevant location name
+            address = data.get('address', {})
+            location = (
+                address.get('city') or 
+                address.get('town') or 
+                address.get('village') or 
+                address.get('suburb') or 
+                address.get('district')
+            )
+            # If we got a location, also get the state/prefecture for context
+            if location:
+                state = address.get('state') or address.get('province')
+                if state and state != location:
+                    location = f"{location}, {state}"
+                print(f"Location found: {location}")
+                return location
+            return None
         else:
             print(f"Error getting location name: HTTP {response.status_code}")
             return None
@@ -247,6 +266,12 @@ def process_images():
                 photographer = os.path.basename(root)
                 absolute_path = file_path
 
+                # Copy the image to static/photos directory
+                static_photos_path = os.path.join('static/photos', relative_path)
+                os.makedirs(os.path.dirname(static_photos_path), exist_ok=True)
+                shutil.copy2(absolute_path, static_photos_path)
+                print(f"Copied image to {static_photos_path}")
+
                 print("Extracting image metadata...")
                 exif_data = get_exif_data(absolute_path)
                 date_taken = exif_data.get('DateTimeOriginal')
@@ -262,11 +287,13 @@ def process_images():
 
                 caption = generate_caption(absolute_path, photographer, map_image_path)
 
+                location_name = get_location_name(latitude, longitude) if latitude and longitude else None
+
                 try:
                     cursor.execute('''
-                        INSERT INTO photo (file_path, caption, date_taken, latitude, longitude, exif_data, photographer)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (relative_path, caption, date_taken, latitude, longitude, str(exif_data), photographer))
+                        INSERT INTO photo (file_path, caption, date_taken, latitude, longitude, location_name, exif_data, photographer)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (relative_path, caption, date_taken, latitude, longitude, location_name, str(exif_data), photographer))
                     print("Database entry created successfully")
                 except sqlite3.Error as e:
                     print(f"Error inserting into database: {str(e)}")

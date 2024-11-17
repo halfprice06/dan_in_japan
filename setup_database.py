@@ -11,8 +11,9 @@ def setup_database():
             date_taken TEXT,
             latitude REAL,
             longitude REAL,
-            photographer TEXT,
-            exif_data TEXT
+            location_name TEXT,
+            exif_data TEXT,
+            photographer TEXT
         )
     ''')
     conn.commit()
