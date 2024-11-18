@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dan In Japan</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
@@ -22,6 +22,8 @@
             background-color: rgba(0, 0, 0, 0.9);
             opacity: 0;
             transition: opacity 0.3s ease;
+            overflow-y: auto; /* Allow modal content to scroll if needed */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
 
         .modal.show {
@@ -32,154 +34,319 @@
             position: relative;
             width: 100%;
             height: 100%;
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.4fr);
+            gap: 1.5rem;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
-            max-width: 1400px;
+            padding: 1.5rem;
+            max-width: 1800px;
             margin: 0 auto;
-            padding-left: 3rem;
-            padding-right: 3rem;
         }
 
         .modal-content {
-            max-width: 90%;
-            max-height: 80vh;
+            grid-column: 1;
+            width: 100%;
+            height: 85vh;
             object-fit: contain;
-            border-radius: 4px;
+            border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
             cursor: zoom-in;
-            margin-bottom: 100px;
+            background: rgba(0, 0, 0, 0.3);
         }
 
-        .modal-content.info-hidden {
-            margin-bottom: 0;
-            max-height: 95vh;
-        }
-
-        .modal-content.zoomed {
-            cursor: zoom-out;
-            max-width: none;
-            max-height: none;
-            margin-bottom: 0;
-        }
-
-        .modal-info {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+        .modal-sidebar {
+            grid-column: 2;
             background: rgba(0, 0, 0, 0.85);
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
-            padding: 1rem;
-            text-align: center;
-            opacity: 1;
-            transition: all 0.5s ease;
-            z-index: 1001;
-        }
-
-        .modal-info.hidden {
-            transform: translateY(100%);
-        }
-
-        .modal-info h2 {
-            font-size: 1.25rem;
-            line-height: 1.5;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .modal-info .text-gray-300 {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 1rem;
-            right: 1.5rem;
+            border-radius: 8px;
+            padding: 1.5rem;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
             color: white;
-            font-size: 2rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-            z-index: 1001;
-            padding: 0.5rem;
-            line-height: 1;
-            transition: transform 0.2s ease;
+            align-self: center;
+            transition: transform 0.3s ease;
+            touch-action: pan-y; /* Enable touch scrolling */
+            transform: translateY(0);
         }
 
-        .modal-close:hover {
-            transform: scale(1.1);
+        .modal-sidebar.dragging {
+            transition: none;
+        }
+
+        .modal-sidebar.collapsed {
+            transform: translateY(calc(100% - 60px));
+        }
+
+        /* Section styles */
+        .sidebar-section {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-section:last-child {
+            border-bottom: none;
+            flex: 1;
+            min-height: 0; /* This is important for proper flexbox scrolling */
+        }
+
+        .sidebar-heading {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Caption styles */
+        .modal-caption {
+            font-size: 1.125rem;
+            font-weight: bold;
+            line-height: 1.3;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Details styles */
+        .modal-details {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Points of Interest styles */
+        .poi-list {
+            flex: 1;
+            overflow-y: auto;
+            margin: 1rem 0;
+            padding-right: 10px; /* Add padding for the scrollbar */
+        }
+
+        .poi-item {
+            margin-bottom: 0.75rem;
+        }
+
+        .poi-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .poi-name a {
+            color: #fff;
+            font-weight: 600;
+            text-decoration: underline;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 2px;
+        }
+
+        .poi-name a:hover {
+            color: #f87171;
+        }
+
+        .poi-description {
+            margin-top: 0.25rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.4;
+            font-size: 0.8125rem;
+        }
+
+        /* Navigation controls */
+        .modal-nav-controls {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 1rem;
+            pointer-events: none; /* This allows clicking through the container */
+            z-index: 1010;
         }
 
         .modal-nav {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 60px;
-            height: 60px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            font-size: 2.5rem;
-            border: none;
-            cursor: pointer;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            transition: all 0.3s ease;
-            -webkit-backdrop-filter: blur(5px);
-            backdrop-filter: blur(5px);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-            z-index: 1002;
-        }
-
-        .modal:hover .modal-nav {
-            opacity: 0.8;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            pointer-events: auto; /* Re-enable pointer events for the buttons */
         }
 
         .modal-nav:hover {
-            opacity: 1 !important;
-            background: rgba(0, 0, 0, 0.8);
-            transform: translateY(-50%) scale(1.1);
+            background: rgba(0, 0, 0, 0.9);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.1);
         }
 
-        .modal-prev {
-            left: 1rem;
+        .modal-nav svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
         }
 
-        .modal-next {
-            right: 1rem;
-        }
-
+        /* Mobile styles */
         @media (max-width: 768px) {
+            .modal-container {
+                grid-template-columns: 1fr;
+                padding: 0.5rem;
+                gap: 0;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .modal-content {
+                height: 40vh; /* Reduce image height to make more room for info */
+                width: 100%;
+                object-fit: contain;
+                margin: 0;
+                padding: 0;
+            }
+
+            .modal-sidebar {
+                position: relative;
+                height: 60vh; /* Give more space to the info panel */
+                max-height: 60vh;
+                background: rgba(0, 0, 0, 0.95);
+                padding: 1rem;
+                border-radius: 12px 12px 0 0;
+                overflow-y: auto;
+            }
+
+            /* Make text more compact */
+            .modal-caption {
+                font-size: 1.1rem;
+                line-height: 1.3;
+                margin-bottom: 0.5rem;
+            }
+
+            .sidebar-heading {
+                font-size: 0.7rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .modal-details {
+                font-size: 0.9rem;
+                margin-bottom: 0.5rem;
+            }
+
+            /* Adjust section spacing */
+            .sidebar-section {
+                padding: 0.75rem 0;
+            }
+
+            /* Make the map button more compact */
+            .sidebar-section button {
+                padding: 0.5rem 1rem;
+            }
+
+            /* Adjust navigation controls */
+            .modal-nav-controls {
+                top: 20vh; /* Center in the image area */
+            }
+
             .modal-nav {
-                width: 40px;
-                height: 40px;
-                font-size: 1.5rem;
+                width: 36px;
+                height: 36px;
             }
 
-            .modal-prev {
-                left: 0.5rem;
-            }
-
-            .modal-next {
+            .modal-close {
+                top: 0.5rem;
                 right: 0.5rem;
+                width: 32px;
+                height: 32px;
+            }
+
+            /* Adjust image counter position */
+            .image-counter {
+                top: 0.5rem;
+            }
+
+            /* Make points of interest more compact */
+            .poi-item {
+                margin-bottom: 0.75rem;
+            }
+
+            .poi-name {
+                font-size: 0.9rem;
+            }
+
+            .poi-description {
+                font-size: 0.8rem;
+                line-height: 1.4;
+            }
+
+            /* Add a subtle scroll indicator */
+            .modal-sidebar::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 20px;
+                background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+                pointer-events: none;
+            }
+
+            /* Handle notch devices */
+            @supports (padding: env(safe-area-inset-bottom)) {
+                .modal-sidebar {
+                    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+                }
+            }
+
+            /* Remove collapse functionality on mobile */
+            .sidebar-toggle {
+                display: none;
+            }
+
+            .modal-sidebar.collapsed {
+                transform: none;
+            }
+
+            /* Add smooth momentum scrolling */
+            .modal-sidebar {
+                -webkit-overflow-scrolling: touch;
+                scroll-behavior: smooth;
+            }
+
+            /* Make buttons more tappable */
+            .modal-nav, 
+            .modal-close,
+            button {
+                min-height: 44px; /* iOS minimum tappable area */
+            }
+
+            /* Improve touch feedback */
+            button:active {
+                transform: scale(0.95);
             }
         }
 
-        /* Make sure buttons are visible on mobile */
-        @media (hover: none) {
-            .modal-nav {
-                opacity: 0.8;
+        /* Add styles for medium-sized screens */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .modal-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .modal-content {
+                height: 50vh;
+            }
+
+            .modal-sidebar {
+                height: 50vh;
             }
         }
 
@@ -239,11 +406,6 @@
         @media (hover: none) {
             .modal-nav {
                 opacity: 0.8;
-                background: rgba(0, 0, 0, 0.4);
-            }
-
-            .modal-nav:active {
-                background: rgba(0, 0, 0, 0.8);
             }
         }
 
@@ -377,75 +539,383 @@
 
         /* Add toggle button for info panel */
         .modal-info-toggle {
-            position: fixed;
-            bottom: 1rem;
-            right: 1rem;
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            border: none;
-            padding: 0.5rem;
+            display: none;
+        }
+
+        /* Custom marker styles */
+        .custom-marker img {
+            display: block;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            cursor: pointer;
-            z-index: 1002;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .custom-marker:hover img {
+            transform: scale(1.5);
+            z-index: 1000;
+        }
+
+        /* Optional: Adjust cluster styles if needed */
+        .marker-cluster span {
+            color: white;
+            font-size: 12px;
+        }
+
+        /* Add styles for zoomed state */
+        .modal-content.zoomed {
+            height: auto;
+            max-height: none;
+            width: auto;
+            max-width: none;
+            cursor: zoom-out;
+        }
+
+        /* Update mobile styles for navigation */
+        @media (max-width: 768px) {
+            .modal-nav-controls {
+                padding: 0 0.5rem;
+            }
+
+            .modal-nav {
+                width: 40px;
+                height: 40px;
+            }
+
+            .modal-nav svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        /* Add hover state for better visibility */
+        .modal-nav {
+            opacity: 0.6;
+            transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .modal-nav:hover {
+            opacity: 1;
+        }
+
+        /* Make buttons more visible on touch devices */
+        @media (hover: none) {
+            .modal-nav {
+                opacity: 0.8;
+            }
+        }
+
+        /* Update modal close button styles */
+        .modal-close {
+            position: fixed;
+            top: 1rem;
+            right: 1.5rem;
             width: 40px;
             height: 40px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            cursor: pointer;
+            z-index: 1020;
+            transition: all 0.2s ease;
+            padding: 0;
+            line-height: 1;
         }
 
-        .modal-info-toggle:hover {
-            background: rgba(0, 0, 0, 0.95);
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.9);
+            border-color: rgba(255, 255, 255, 0.4);
             transform: scale(1.1);
+        }
+
+        /* Update mobile styles */
+        @media (max-width: 768px) {
+            .modal-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+                gap: 0;
+            }
+
+            .modal-content {
+                height: 50vh;
+                margin-bottom: 0;
+            }
+
+            .modal-sidebar {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: auto;
+                max-height: 50vh;
+                border-radius: 16px 16px 0 0;
+                padding: 1.25rem;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            }
+
+            .modal-nav-controls {
+                bottom: auto;
+                top: 25vh; /* Center in the image area */
+                transform: translateY(-50%);
+                padding: 0 0.5rem;
+            }
+
+            .modal-nav {
+                width: 36px;
+                height: 36px;
+            }
+
+            .modal-nav svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .modal-close {
+                top: 0.75rem;
+                right: 0.75rem;
+                width: 36px;
+                height: 36px;
+                font-size: 20px;
+            }
+
+            .image-counter {
+                top: 0.75rem;
+            }
+
+            /* Adjust section spacing for mobile */
+            .sidebar-section {
+                padding: 1rem 0;
+            }
+
+            .modal-caption {
+                font-size: 1.25rem;
+            }
+
+            .sidebar-heading {
+                font-size: 0.75rem;
+            }
+
+            /* Add pull indicator for mobile */
+            .modal-sidebar::before {
+                content: '';
+                position: absolute;
+                top: 0.5rem;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 36px;
+                height: 4px;
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 2px;
+                cursor: grab;
+            }
+
+            .modal-sidebar.dragging::before {
+                cursor: grabbing;
+            }
+
+            /* Add styles for collapsed state */
+            .modal-sidebar.collapsed {
+                transform: translateY(calc(100% - 60px));
+            }
+
+            /* Handle notch devices */
+            @supports (padding: env(safe-area-inset-bottom)) {
+                .modal-sidebar {
+                    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+                }
+            }
+        }
+
+        /* Add touch handling styles */
+        @media (hover: none) {
+            .modal-nav, .modal-close {
+                opacity: 0.8;
+            }
+
+            .modal-content {
+                cursor: default; /* Remove zoom cursor on touch devices */
+            }
+        }
+
+        /* Add zoom transition */
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+
+        .modal-content.zoomed {
+            transform: scale(1.5);
+        }
+
+        /* Update the pull indicator styles */
+        .modal-sidebar::before {
+            display: none; /* Remove the pull indicator */
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-toggle svg {
+            width: 20px;
+            height: 20px;
+            stroke: white;
+            transform: rotate(180deg); /* Start with chevron pointing down */
+            transition: transform 0.3s ease;
+        }
+
+        .modal-sidebar.collapsed .sidebar-toggle svg {
+            transform: rotate(0deg); /* Point up when collapsed */
+        }
+
+        /* Update the collapsed state transition */
+        .modal-sidebar {
+            transform: translateY(0);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-sidebar.collapsed {
+            transform: translateY(calc(100% - 60px));
+        }
+
+        /* Adjust mobile styles */
+        @media (max-width: 768px) {
+            .sidebar-toggle {
+                top: 0.25rem;
+            }
+        }
+
+        /* Update the points of interest section styles */
+        .poi-list {
+            flex: 1;
+            overflow-y: auto;
+            margin: 1rem 0;
+            padding-right: 10px; /* Add padding for the scrollbar */
+        }
+
+        /* Custom scrollbar styles */
+        .poi-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .poi-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .poi-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+
+        .poi-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Firefox scrollbar styles */
+        .poi-list {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+        }
+
+        /* Update the sidebar section containing points of interest to ensure proper scrolling */
+        .sidebar-section {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-section:last-child {
+            border-bottom: none;
+            flex: 1;
+            min-height: 0; /* This is important for proper flexbox scrolling */
+        }
+
+        /* Add styles to prevent content shift when scrollbar disappears */
+        html {
+            scrollbar-gutter: stable;
         }
     </style>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto py-8 px-4">
-        <!-- Hero section with Japanese-inspired design -->
-        <div class="relative mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white rounded-lg shadow-lg overflow-hidden">
+    <nav class="bg-white shadow mb-8">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <a href="/" class="text-3xl font-bold text-gray-800">Dan in Japan</a>
+                <div>
+                    <a href="/" class="text-gray-800 hover:text-red-600 mr-4">Home</a>
+                    <a href="/about" class="text-gray-800 hover:text-red-600">About</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Hero section -->
+        <div class="relative mb-8 grid grid-cols-1 md:grid-cols-2 bg-white rounded-lg shadow-lg overflow-hidden">
             <!-- Left side - Hero image -->
-            <div class="relative h-[300px] sm:h-[400px] lg:h-full min-h-[300px]">
+            <div class="relative h-[300px] md:h-full">
                 <div class="absolute inset-0 bg-cover bg-center transform hover:scale-105 transition-transform duration-700" 
                      style="background-image: url('{% if photos %}{{ '/static/photos/' + photos[0].file_path }}{% else %}/static/default-hero.jpg{% endif %}');">
                     <div class="absolute inset-0 bg-black bg-opacity-30"></div>
                 </div>
+                
                 <!-- Japanese-style overlay pattern -->
                 <div class="absolute inset-0 opacity-20 bg-repeat" 
-                     style="background-image: url('data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.4' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E');">
+                     style="background-image: url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23000000\" fill-opacity=\"0.4\" fill-rule=\"evenodd\"%3E%3Cpath d=\"M0 40L40 0H20L0 20M40 40V20L20 40\"/%3E%3C/g%3E%3C/svg%3E');">
                 </div>
-                <!-- Title with Japanese-inspired typography -->
+                
+                <!-- Title -->
                 <div class="absolute inset-0 flex items-center justify-center">
-                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-wider text-center px-4" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                    <h1 class="text-7xl sm:text-4xl lg:text-5xl font-bold text-white tracking-wider text-center px-4" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                         Dan in Japan
-                        <span class="block text-base sm:text-lg mt-2 font-light tracking-widest">ダンイン ジャパン</span>
+                        <span class="block text-lg sm:text-xl mt-2 font-light tracking-widest">ダンイン ジャパン</span>
                     </h1>
                 </div>
             </div>
 
             <!-- Right side - Description -->
-            <div class="p-6 sm:p-8 lg:p-12 flex flex-col justify-center">
-                <div class="prose prose-lg max-w-none">
+            <div class="p-6 md:p-8 lg:p-12 flex flex-col justify-center">
+                <div class="prose prose-lg">
                     <!-- Japanese-inspired decorative element -->
-                    <div class="w-24 h-1 bg-red-600 mb-6 sm:mb-8"></div>
+                    <div class="w-24 h-1 bg-red-600 mb-6"></div>
                     
-                    <p class="text-base sm:text-lg leading-relaxed text-gray-700 mb-4 sm:mb-6">
-                        In October 2024, I spent 2 weeks in Japan with my wife Christina and our good friends Chuck and Ashley. We visited Tokyo, Osaka, and Kyoto.
+                    <p class="text-base sm:text-lg text-gray-700 mb-4">
+                        In October 2024, I spent 2 weeks in Japan with my wife Christina and our good friends Chuck and Ashley. We visited Tokyo, Osaka, and Kyoto, taking nearly 2000 photos along the way.
                     </p>
-                    <p class="text-base sm:text-lg leading-relaxed text-gray-700 mb-4 sm:mb-6">
-                        When we got back I decided I wanted to take everyone's photos and build an interactive photo gallery. I started brainstorming ideas with ChatGPT and Claude for how to make the site more interactive with AI.
+                    <p class="text-base sm:text-lg text-gray-700 mb-4">
+                        After manually filtering out duplicates and not so great photos, I built an interactive gallery using the SerpAPI and Claude 3.5 Sonnet to auto-generate captions that are photo metadata aware! The system also uses the <a href="https://python.useinstructor.com/" class="text-red-600 hover:text-red-800">Instructor library</a> to extract interesting cultural and historical points from each image, making it easy to learn more about what you're seeing. The AI captions are not perfect, but they're a fun way to learn more about the photos.
                     </p>
-                    <p class="text-base sm:text-lg leading-relaxed text-gray-700">
-                        I decided to use AI to generate captions for all of the photos and to use the 
-                        <a href="https://github.com/jxnl/instructor" class="text-red-600 hover:text-red-700 underline decoration-red-200 hover:decoration-red-600 transition-colors duration-200">instructor library</a> 
-                        to extract "Points of Interest" from each photo and make them interactive with additional information also generated by AI. For more information on how the captions and points of interest were generated, <a href="https://daninjapan.net/about" class="text-red-600 hover:text-red-700 underline decoration-red-200 hover:decoration-red-600 transition-colors duration-200">click here</a>.
-                        Check out the code on 
-                        <a href="https://github.com/halfprice06/dan_in_japan" class="text-red-600 hover:text-red-700 underline decoration-red-200 hover:decoration-red-600 transition-colors duration-200">GitHub</a>.
+                    <p class="text-base sm:text-lg text-gray-700">
+                        For more details about how the AI captioning works, check out the <a href="/about" class="text-red-600 hover:text-red-800">about page</a>. The full code is available on <a href="https://github.com/halfprice06/dan_in_japan" class="text-red-600 hover:text-red-800">GitHub</a>.
                     </p>
                     
                     <!-- Japanese-inspired decorative element -->
-                    <div class="w-24 h-1 bg-red-600 mt-6 sm:mt-8"></div>
+                    <div class="w-24 h-1 bg-red-600 mt-6"></div>
                 </div>
             </div>
         </div>
@@ -475,13 +945,19 @@
                     </div>
                     <div class="p-4">
                         <p class="text-gray-800 line-clamp-2">{{ photo.caption }}</p>
+                        <div class="flex justify-center">
+                            <button onclick="showPhotoOnMap({{ photo.id }})"
+                                    class="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200">
+                                Show on Map
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
             <div class="text-center">
                 <button onclick="scrollToGallery()" 
-                        class="bg-indigo-600 text-white px-8 py-3 mt-8 rounded-full font-medium hover:bg-indigo-700 transition-colors duration-200 transform hover:scale-105">
+                        class="bg-blue-900 text-white px-8 py-3 mt-8 rounded-full font-medium hover:bg-red-700 transition-colors duration-200 transform hover:scale-105">
                     View Full Gallery
                 </button>
             </div>
@@ -490,7 +966,7 @@
         <!-- Add Map section with heading -->
         <div class="mb-16">
             <h2 class="text-3xl font-bold text-center mb-8">Explore Our Journey</h2>
-            <div id="map" class="w-full h-96 rounded-lg shadow-lg"></div>
+            <div id="map" class="w-full h-[700px] rounded-lg shadow-lg"></div>
         </div>
 
         <!-- After the map section, add this full gallery section -->
@@ -498,13 +974,13 @@
             <h2 class="text-3xl font-bold text-center mb-8 flex items-center justify-center">
                 <span class="text-red-600 mx-4">〜</span>
                 Full Gallery
-                <span class="text-red-600 mx-4">〜</span>
+                <span class="text-red-600 mx-4"></span>
             </h2>
             
             <!-- Filter controls -->
             <div class="mb-8 flex flex-wrap gap-4 items-center justify-center bg-white p-4 rounded-lg shadow-md">
                 <select id="locationFilter" 
-                        class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                         aria-label="Filter photos by location">
                     <option value="">All Locations</option>
                     {% for location in unique_locations %}
@@ -513,7 +989,7 @@
                 </select>
                 
                 <select id="sortOrder" 
-                        class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                         aria-label="Sort photos by">
                     <option value="date-desc">Newest First</option>
                     <option value="date-asc" selected>Oldest First</option>
@@ -540,6 +1016,12 @@
                     </div>
                     <div class="p-4">
                         <p class="text-gray-800 line-clamp-2">{{ photo.caption }}</p>
+                        <div class="flex justify-center">
+                            <button onclick="showPhotoOnMap({{ photo.id }})"
+                                    class="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200">
+                                Show on Map
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -591,30 +1073,64 @@
         </div>
         
         <div class="modal-container">
-            <button class="modal-nav modal-prev" onclick="navigateModal(-1)" aria-label="Previous image">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M15 18l-6-6 6-6" />
-                </svg>
-            </button>
-            <button class="modal-nav modal-next" onclick="navigateModal(1)" aria-label="Next image">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 18l6-6-6-6" />
-                </svg>
-            </button>
-            
             <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
             <img class="modal-content" id="modalImage" alt="" onclick="toggleZoom(this)">
-        </div>
+            
+            <div class="modal-sidebar">
+                <!-- Add the toggle button -->
+                <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 15l-7-7-7 7"/>
+                    </svg>
+                </button>
 
-        <button class="modal-info-toggle" onclick="toggleInfo()" aria-label="Toggle information">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        </button>
-        
-        <div class="modal-info">
-            <h2 id="modalCaption" class="text-white text-xl mb-3 font-medium"></h2>
-            <div id="modalDetails" class="text-gray-300 text-sm"></div>
+                <!-- Caption Section -->
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">Caption</div>
+                    <h2 id="modalCaption" class="modal-caption"></h2>
+                </div>
+
+                <!-- Details Section -->
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">Details</div>
+                    <div id="modalDetails" class="modal-details"></div>
+                </div>
+
+                <!-- Add new Map Button Section -->
+                <div class="sidebar-section" style="padding: 0.5rem 0;">
+                    <button onclick="showPhotoOnMapModal()" 
+                            class="w-full bg-red-600 text-white px-4 py-3 rounded-lg text-sm font-medium 
+                                   hover:bg-red-700 transition-colors duration-200 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Show on Map
+                    </button>
+                </div>
+
+                <!-- Points of Interest Section -->
+                <div class="sidebar-section" style="flex: 1;">
+                    <div class="sidebar-heading">Points of Interest</div>
+                    <div id="pointsOfInterestList" class="poi-list"></div>
+                </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="modal-nav-controls">
+                <button class="modal-nav modal-prev" onclick="navigateModal(-1)" aria-label="Previous image">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <button class="modal-nav modal-next" onclick="navigateModal(1)" aria-label="Next image">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 18l6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -624,6 +1140,23 @@
 
     <!-- Initialize the Map -->
     <script>
+        // Function to create custom icon for markers
+        function createCustomIcon(photo) {
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `
+                    <div class="relative group">
+                        <img src="/static/photos/${photo.file_path}" 
+                             class="w-20 h-20 rounded-full object-cover border-2 border-white shadow-lg
+                                    transition-transform duration-300 group-hover:scale-150">
+                    </div>
+                `,
+                iconSize: [80, 80],
+                iconAnchor: [40, 80],
+                popupAnchor: [0, -80]
+            });
+        }
+
         // Create the map and set the initial view
         var map = L.map('map').setView([35.6762, 139.6503], 6);  // Center on Japan
 
@@ -638,20 +1171,39 @@
 
         // Initialize the marker cluster group with custom options
         var markerCluster = L.markerClusterGroup({
-            maxClusterRadius: 50,
+            maxClusterRadius: 60,
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: true,
             zoomToBoundsOnClick: true
         });
 
+        // Create an object to map photo IDs to markers
+        var photoMarkers = {};
+
         // Loop through the photos and add markers to the cluster group
         {% for photo in photos %}
             {% if photo.latitude and photo.longitude %}
-                var marker = L.marker([{{ photo.latitude }}, {{ photo.longitude }}]);
+                // Prepare the photo data
+                var photoData = {
+                    id: {{ photo.id }},
+                    file_path: "{{ photo.file_path }}",
+                    caption: {{ photo.caption|tojson }},
+                    location_name: {{ photo.location_name|tojson }},
+                    date_taken: "{{ photo.date_taken.strftime('%B %d, %Y') if photo.date_taken else '' }}",
+                    latitude: {{ photo.latitude }},
+                    longitude: {{ photo.longitude }}
+                };
+
+                // Create custom icon for the marker
+                var marker = L.marker([photoData.latitude, photoData.longitude], {
+                    icon: createCustomIcon(photoData)
+                });
+
+                // Create popup content
                 var popupContent = `
                     <div class="custom-popup max-w-sm rounded-lg overflow-hidden shadow-lg bg-white transform transition-transform duration-200 hover:scale-105">
                         <div class="relative">
-                            <img src="/static/photos/{{ photo.file_path }}" 
+                            <img src="/static/photos/${photoData.file_path}" 
                                  class="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity duration-200"
                                  onclick='openModal("/static/photos/{{ photo.file_path }}", {{ photo.caption|tojson }}, {{ photo.location_name|tojson }}, {{ photo.date_taken.strftime("%B %d, %Y")|tojson if photo.date_taken else "null" }})'
                                  alt="{{ photo.caption }}">
@@ -671,13 +1223,13 @@
                                 {{ photo.caption }}
                             </p>
                             <button onclick='openModal("/static/photos/{{ photo.file_path }}", {{ photo.caption|tojson }}, {{ photo.location_name|tojson }}, {{ photo.date_taken.strftime("%B %d, %Y")|tojson if photo.date_taken else "null" }})'
-                                    class="mt-3 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors duration-200">
+                                    class="mt-3 w-full bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200">
                                 View Full Image
                             </button>
                         </div>
                     </div>
                 `;
-                
+
                 // Create popup with custom options
                 var popup = L.popup({
                     maxWidth: 400,
@@ -686,10 +1238,13 @@
                     autoPan: true,
                     autoPanPadding: [50, 50]
                 }).setContent(popupContent);
-                
+
+                // Add the marker to the photoMarkers object
+                photoMarkers[photoData.id] = marker;
+
                 marker.bindPopup(popup);
                 markerCluster.addLayer(marker);
-                markers.push([{{ photo.latitude }}, {{ photo.longitude }}]);
+                markers.push([photoData.latitude, photoData.longitude]);
             {% endif %}
         {% endfor %}
 
@@ -705,16 +1260,26 @@
 
     <script>
         let currentPhotoIndex = 0;
+        let currentPhoto;
         let photos = {{ serialized_photos|tojson|safe }};
+
+        function toggleBodyScroll(disable) {
+            document.body.style.overflow = disable ? 'hidden' : '';
+        }
 
         function openModal(imageSrc, caption, location, date) {
             const modal = document.getElementById('imageModal');
             const modalImg = document.getElementById('modalImage');
             const modalCaption = document.getElementById('modalCaption');
             const modalDetails = document.getElementById('modalDetails');
+            const pointsOfInterestList = document.getElementById('pointsOfInterestList');
             const loadingSpinner = document.getElementById('loadingSpinner');
             
+            // Disable body scroll when opening modal
+            toggleBodyScroll(true);
+            
             currentPhotoIndex = photos.findIndex(photo => `/static/photos/${photo.file_path}` === imageSrc);
+            currentPhoto = photos[currentPhotoIndex];
             
             modal.style.display = "block";
             loadingSpinner.style.display = "block";
@@ -733,6 +1298,28 @@
             if (date) details.push(date);
             modalDetails.textContent = details.join(' • ');
 
+            // Update points of interest
+            pointsOfInterestList.innerHTML = '';
+            if (currentPhoto.points_of_interest && currentPhoto.points_of_interest.length > 0) {
+                currentPhoto.points_of_interest.forEach(poi => {
+                    const poiElement = document.createElement('div');
+                    poiElement.className = 'poi-item';
+                    poiElement.innerHTML = `
+                        <div class="poi-name">
+                            <a href="https://www.google.com/search?q=${encodeURIComponent(poi.name)}" 
+                               target="_blank" 
+                               class="text-white hover:text-red-300 transition-colors duration-200 underline">
+                                ${poi.name}
+                            </a>
+                        </div>
+                        <div class="poi-description">${poi.description}</div>
+                    `;
+                    pointsOfInterestList.appendChild(poiElement);
+                });
+            } else {
+                pointsOfInterestList.innerHTML = '<div class="modal-details">No points of interest available</div>';
+            }
+
             updateImageCounter();
             preloadAdjacentImages();
         }
@@ -740,6 +1327,10 @@
         function closeModal() {
             const modal = document.getElementById('imageModal');
             modal.classList.remove('show');
+            
+            // Re-enable body scroll when closing modal
+            toggleBodyScroll(false);
+            
             setTimeout(() => {
                 modal.style.display = "none";
             }, 300);
@@ -789,17 +1380,16 @@
 
         function toggleZoom(img) {
             img.classList.toggle('zoomed');
-            const infoPanel = document.querySelector('.modal-info');
-            const infoToggle = document.querySelector('.modal-info-toggle');
             
-            if (img.classList.contains('zoomed')) {
-                infoPanel.classList.add('hidden');
-                infoToggle.style.opacity = '0';
-                infoVisible = false;
-            } else {
-                infoPanel.classList.remove('hidden');
-                infoToggle.style.opacity = '1';
-                infoVisible = true;
+            // For small screens, adjust max-width and max-height
+            if (window.innerWidth <= 768) {
+                if (img.classList.contains('zoomed')) {
+                    img.style.maxWidth = 'none';
+                    img.style.maxHeight = 'none';
+                } else {
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = 'calc(100vh - 4rem)';
+                }
             }
         }
 
@@ -836,10 +1426,16 @@
 
         // Add mousewheel navigation
         document.querySelector('.modal-container').addEventListener('wheel', function(e) {
-            if (e.deltaY > 0) {
-                navigateModal(1);  // Scroll down = next
-            } else {
-                navigateModal(-1); // Scroll up = previous
+            const modalImage = document.querySelector('.modal-content');
+            
+            // Only allow scroll navigation when the image is zoomed
+            if (modalImage.classList.contains('zoomed')) {
+                if (e.deltaY > 0) {
+                    navigateModal(1);  // Scroll down = next
+                } else {
+                    navigateModal(-1); // Scroll up = previous
+                }
+                e.preventDefault(); // Prevent default scroll behavior
             }
         });
     </script>
@@ -853,8 +1449,8 @@
                 html: `
                     <div class="relative group">
                         <img src="/static/photos/${photo.file_path}" 
-                             class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg
-                                    transition-transform group-hover:scale-150 z-10">
+                             class="w-20 h-20 rounded-full object-cover border-2 border-white shadow-lg
+                                    transition-transform duration-300 group-hover:scale-125">
                         <div class="absolute hidden group-hover:block bg-white p-2 rounded shadow-lg -translate-y-full">
                             <img src="/static/photos/${photo.file_path}" class="w-32 h-32 object-cover">
                             <p class="text-sm mt-1">${photo.caption}</p>
@@ -997,6 +1593,73 @@
             infoPanel.classList.add('hidden');
             modalImage.classList.add('info-hidden');
         }
+    }
+    </script>
+
+    <script>
+    // Update the points of interest rendering
+    function updatePointsOfInterest(points) {
+        const container = document.getElementById('pointsOfInterestList');
+        container.innerHTML = '';
+        
+        if (points && points.length > 0) {
+            points.forEach(poi => {
+                const poiElement = document.createElement('div');
+                poiElement.className = 'poi-item';
+                poiElement.innerHTML = `
+                    <div class="poi-name">
+                        <a href="https://www.google.com/search?q=${encodeURIComponent(poi.name)}" 
+                           target="_blank" 
+                           class="text-white hover:text-red-300 transition-colors duration-200 underline">
+                            ${poi.name}
+                        </a>
+                    </div>
+                    <div class="poi-description">${poi.description}</div>
+                `;
+                container.appendChild(poiElement);
+            });
+        } else {
+            container.innerHTML = '<div class="modal-details">No points of interest available</div>';
+        }
+    }
+    </script>
+
+    <script>
+    // Function to scroll to the map and show the marker for a photo
+    function showPhotoOnMap(photoId) {
+        // Scroll to the map
+        document.getElementById('map').scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+        });
+
+        // Wait for scrolling to finish
+        setTimeout(function() {
+            var marker = photoMarkers[photoId];
+            if (marker) {
+                // Open the marker's popup
+                marker.openPopup();
+                // Center the map on the marker
+                map.setView(marker.getLatLng(), 12);
+            } else {
+                alert('Location information not available for this photo.');
+            }
+        }, 500); // Adjust the timeout as needed
+    }
+    </script>
+
+    <script>
+    function showPhotoOnMapModal() {
+        closeModal();
+        showPhotoOnMap(currentPhoto.id);
+    }
+    </script>
+
+    <script>
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.modal-sidebar');
+        sidebar.classList.toggle('collapsed');
     }
     </script>
 </body>

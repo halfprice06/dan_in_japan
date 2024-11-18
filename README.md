@@ -41,38 +41,7 @@ A personal website that hosts vacation photos with AI-generated captions and an 
      ```env
      ANTHROPIC_API_KEY=your_anthropic_api_key
      SERP_API_KEY=your_serpapi_key
-     SYSTEM_PROMPT=your_customized_prompt
      ```
-   
-   The `SYSTEM_PROMPT` is crucial for generating accurate captions. It should include:
-   - Context about the trip and travelers.
-   - Specific instructions for the AI on how to generate captions.
-   - The `{photographer}` placeholder, which will be replaced with the photographer's name during processing.
-
-   **Example `SYSTEM_PROMPT`:**
-   ```
-   You are creating captions for a travel blog called 'Dan in Japan' about a vacation taken by Dan, Christina, Chuck, and Ashley in October 2024. You are being given a photo from the trip along with a screenshot of a map showing where the photo was taken using the SerpAPI from the photo coordinates. Write a caption for this photo in the style of a modern travel blog, as if you're sharing this moment with a friend who's never been to Japan. About the travelers: Dan (the author), Christina (Dan's wife), Chuck (friend), and Ashley (friend). Trip details:
-   
-   - Spent 2 weeks in Japan during October 2024
-   - Visited Tokyo, Osaka, and Kyoto
-   - Accommodations: stayed in a mix of hotels and traditional ryokans
-   - This photo was taken by {photographer}.
-   
-   **The caption should:**
-   - Feel conversational and personal, not academic
-   - Include relevant cultural/historical context only if it adds to the story
-   - Capture the mood or feeling of the moment
-   - Use present tense to make it immediate ("Here's Dan checking out..." vs "Dan checked out...")
-   - Include specific details from the photo but avoid over-describing
-   - Keep it to 1-2 engaging sentences
-   
-   **Don't:**
-   - Make assumptions about anything in the photo
-   - Add fictional details or imagine backstories
-   - Describe things not visible in the photo
-   - Assume activities from map locations were done
-   - For photos from the home country (pre/post trip), you are likely looking at prizes/souvenirs brought home. When looking at the map, don't assume whatever shows on the map is the activity from the photo; that's just to show what was nearby. If the photo is from the home country, it's from before/after the trip.
-   ```
 
 5. **Organize your photos:**
 
@@ -91,6 +60,8 @@ A personal website that hosts vacation photos with AI-generated captions and an 
      ├── dan_photo1.jpg
      ├── christina_photo2.jpg
      ```
+   
+   - Make sure to edit the system prompt and instructions in `process_images.py` to customize the captions and metadata extraction so the AI writes the prompts the way you want. 
 
 6. **Process images and generate captions:**
    ```bash
@@ -132,6 +103,7 @@ A personal website that hosts vacation photos with AI-generated captions and an 
   - `anthropic` SDK
   - `serpapi` SDK
   - `python-dotenv`
+  - `instructor` library
   - `uvicorn`
   - `Jinja2`
 

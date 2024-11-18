@@ -53,25 +53,50 @@ def get_db_connection():
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request, sort_by: str = Query('date-asc'), location: str = Query(None)):
     conn = get_db_connection()
-    query = 'SELECT * FROM photo'
+    
+    # First get all photos with their basic info
+    query = '''
+        SELECT p.*, 
+               GROUP_CONCAT(poi.name || '||' || poi.description, '##') as points_of_interest
+        FROM photo p
+        LEFT JOIN point_of_interest poi ON p.id = poi.photo_id
+    '''
+    
     filters = []
     params = []
 
     if location:
-        filters.append('location_name LIKE ?')
+        filters.append('p.location_name LIKE ?')
         params.append(f'%{location}%')
 
     if filters:
         query += ' WHERE ' + ' AND '.join(filters)
 
+    query += ' GROUP BY p.id'  # Group by photo id to combine points of interest
+
     if sort_by == 'date-asc':
-        query += ' ORDER BY date_taken ASC NULLS LAST'
+        query += ' ORDER BY p.date_taken ASC NULLS LAST'
     elif sort_by == 'location':
-        query += ' ORDER BY location_name NULLS LAST'
+        query += ' ORDER BY p.location_name NULLS LAST'
     else:
-        query += ' ORDER BY date_taken DESC NULLS LAST'
+        query += ' ORDER BY p.date_taken DESC NULLS LAST'
 
     photos = conn.execute(query, params).fetchall()
+    
+    # Process the points_of_interest string into a structured format
+    for photo in photos:
+        poi_str = photo.get('points_of_interest')
+        points_of_interest = []
+        if poi_str:
+            for poi in poi_str.split('##'):
+                if '||' in poi:
+                    name, description = poi.split('||')
+                    points_of_interest.append({
+                        'name': name,
+                        'description': description
+                    })
+        photo['points_of_interest'] = points_of_interest
+
     conn.close()
 
     # Get unique locations for the filter dropdown
@@ -123,4 +148,8 @@ async def get_photos(
     photos = conn.execute(query, params).fetchall()
     conn.close()
     
-    return JSONResponse(content={"photos": photos}) 
+    return JSONResponse(content={"photos": photos})
+
+@app.get("/about", response_class=HTMLResponse)
+async def about(request: Request):
+    return templates.TemplateResponse("about.html", {"request": request}) 
