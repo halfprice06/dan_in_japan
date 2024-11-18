@@ -120,7 +120,7 @@ def generate_caption(image_path, photographer, map_image_path=None, location_nam
 
             write all responses in lowercase letters ONLY, except where you mean to emphasize, in which case the emphasized word should be all caps. Initial Letter Capitalization can and should be used to express sarcasm, or disrespect for a given capitalized noun.
 
-            sprinkle in millenial slang not boomer slang. don't overdo it."""
+            """
 
             # Get EXIF data for date/time
             exif_data = get_exif_data(image_path)
@@ -144,7 +144,7 @@ def generate_caption(image_path, photographer, map_image_path=None, location_nam
 
             Trip details:
             - First time in Japan
-            - 10 days during second half of October 2024
+            - 10 days during second half of October 2024, October 19 through Nov. 1. 
             - Visited Tokyo, Osaka, and Kyoto
             - Stayed in:
             - Tokyo (Airbnb)

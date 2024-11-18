@@ -54,18 +54,24 @@
 
                 <h2 class="marker-font text-3xl mb-6">The Photo Organization Problem</h2>
                 <p>
-                    Our group came back from Japan with thousand + photos. While the images themselves were vivid reminders of the trip, I wanted to add context - where each photo was taken, what was happening in the scene, and interesting details that might not be immediately obvious.
+                    Our group came back from Japan with a thousand+ photos. While the images themselves were vivid reminders of the trip, I wanted to add context - where each photo was taken, what was happening in the scene, and interesting details that might not be immediately obvious.
+
+                    I also wanted to add a layer of interactivity to the website so people could click on photos and get more information about what was happening. 
+
+                    Finally I wanted to extract 'Points of Interest' from each photo so I could highlight interesting cultural or historical details from the photos in a way that's standalone from the caption. 
                 </p>
 
                 <p>
-                    <span class="font-bold">Manually writing captions would have taken days.</span> So I turned to some modern tools for help.
+                    <span class="font-bold">Manually writing captions and points of interest would have taken forever.</span> So I turned to some modern tools for help. 
                 </p>
 
                 <hr class="divider">
 
                 <h2 class="marker-font text-3xl mb-6">The Technical Solution</h2>
                 <p>
-                    I built a system using Claude, an AI model from Anthropic, to analyze each photo and generate descriptive captions. Here's a deep dive into how it works:
+                    Auto-captioning photos with AI isn't a new idea, but what made captioning vacation photos tricky was the need to add context to the prompts about where the photo was taken, when the photo was taken, who took it, who might be appearing in any given photo, and other general details about the vacation.
+
+                    So I built a pipeline using Claude, an AI model from Anthropic, to analyze each photo along with its metadata (and a map generated from the GPS coordinates) to generate captions which actually turned out pretty decent. Here's a deep dive into how it works:
                 </p>
 
                 <div class="bg-indigo-50 p-6 rounded-lg my-8">
@@ -74,8 +80,9 @@
                         <li>A Python script extracts EXIF data from each photo, including GPS coordinates and timestamp</li>
                         <li>For photos with GPS data, it generates a map using Google Maps via the SerpAPI</li>
                         <li>The script sends both the photo and map (if available) to Claude</li>
-                        <li>Claude analyzes the images and generates a natural language description</li>
-                        <li>Everything gets stored in a SQLite database for the website to use</li>
+                        <li>Claude analyzes the images and generates a natural language description and points of interest</li>
+                        <li>The captions and points of interest are extracted using the Instructor library and stored in a SQLite database</li>
+                        <li>Everything gets stored in a SQLite database for the website to use.</li>
                     </ol>
                     
                     <div class="mt-6">
@@ -137,10 +144,8 @@
                         </p>
                 </div>
 
-                <p>
-                    I also incorporated parts of a system prompt from eigenrobot's tweet (https://x.com/eigenrobot/status/1846781283596488946), which makes it write like a terminally online millennial.
-                    
-                    It took a lot of trial and error to land on this prompt. Most of the errors are simply the vision model making mistakes or hallucinating and I don't know how I can fix that with more prompts other then swapping for a new model. 
+                <p>                    
+                    After a lot of trial and error, I'm pretty happy with this prompt. The main issues that remain are when the vision model hallucinates details that aren't actually in the photos - something that can really only be fixed by using a more accurate vision model, rather than tweaking the prompts further.
                 </p>
 
                 <hr class="divider">
@@ -154,11 +159,11 @@
 
                 <h2 class="marker-font text-3xl mb-6">The Points of Interest Extraction</h2>
                 <p>
-                    In addition to generating captions, the system now incorporates the <a href="https://python.useinstructor.com/" class="text-indigo-600 hover:text-indigo-800 underline">Instructor library</a> to extract <em>points of interest</em> from each photo. This enables the website to highlight notable locations, cultural elements, or historical references found in the images.
+                    In addition to generating captions, the system incorporates the <a href="https://python.useinstructor.com/" class="text-indigo-600 hover:text-indigo-800 underline">Instructor library</a> to extract <em>points of interest</em> from each photo. This enables the website to highlight notable locations, cultural elements, or historical references found in the images.
                 </p>
 
                 <p>
-                    The Instructor library is a lightweight Python library that simplifies extracting structured data from language models. In our case, we're using it to parse the AI's responses into a structured format containing the points of interest.
+                    The Instructor library is a lightweight Python library that simplifies extracting structured data from language models. In our case, we're using it to parse the AI's responses into a structured format containing the captions and points of interest.
                 </p>
 
                 <p>Here's how I integrated it into the code:</p>
@@ -206,7 +211,7 @@ def generate_caption(...):
                         <li><strong>Backend:</strong> FastAPI + SQLite</li>
                         <li><strong>Frontend:</strong> Jinja2 Templates + Tailwind CSS</li>
                         <li><strong>Image Processing:</strong> Pillow (PIL) for EXIF data</li>
-                        <li><strong>AI:</strong> Claude 3.5 Sonnet via Anthropic's API</li>
+                        <li><strong>AI:</strong> Claude 3.5 Sonnet via Anthropic's API + Instructor</li>
                         <li><strong>Maps:</strong> Leaflet.js + OpenStreetMap</li>
                         <li><strong>Development:</strong> Cursor IDE</li>
                     </ul>
@@ -218,7 +223,7 @@ def generate_caption(...):
 
                 <div class="bg-yellow-50 p-6 rounded-lg my-8">
                     <p class="italic">
-                        This project is an experiment in combining traditional photo metadata with AI-generated descriptions. While not perfect, it's an interesting way to add context to travel photos automatically.
+                        This project is an experiment in AI driven storytelling. While not perfect, it's an interesting way to share vacation photos with friends and family. 
                     </p>
                 </div>
             </div>
